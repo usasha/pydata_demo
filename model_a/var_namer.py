@@ -1,8 +1,9 @@
-import logging
 import logging.handlers
 import time
 import random
+
 from flask import Flask, render_template, redirect
+
 app = Flask(__name__)
 
 

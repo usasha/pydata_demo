@@ -1,0 +1,50 @@
+version: '3.4'
+
+services:
+  reverse-proxy:
+    image: traefik:1.6.4
+    command:
+      --api
+      --docker
+      --docker.swarmmode
+      --docker.domain=docker.localhost
+      --metrics.prometheus=true
+      --metrics.prometheus.buckets="0.01,0.05,0.1,0.2,0.5"
+    ports:
+      - "80:80"
+      - "8080:8080"
+    deploy:
+      replicas: 1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock # So that Traefik can listen to the Docker events
+    networks:
+      - traefik_net
+
+  model_a:
+    image: model_a
+    deploy:
+      labels:
+        - "traefik.backend=var_namer"
+        - "traefik.frontend.rule=PathPrefix:/"
+        - "traefik.port=5000"
+      replicas: 2
+    volumes:
+      - ./data:/app/data
+    networks:
+      - traefik_net
+
+  model_b:
+    image: model_b
+    deploy:
+      labels:
+        - "traefik.backend=var_namer"
+        - "traefik.port=5000"
+      replicas: 1
+    volumes:
+      - ./data:/app/data
+    networks:
+      - traefik_net
+
+networks:
+  traefik_net:
+    driver: overlay
