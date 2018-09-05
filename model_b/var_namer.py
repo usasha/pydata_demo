@@ -9,8 +9,8 @@ app = Flask(__name__)
 feedback_logger = logging.getLogger('stats for bandits')
 feedback_logger.setLevel('INFO')
 feedback_logger.addHandler(logging.handlers.RotatingFileHandler('../data/likes.tsv',
-                                                                maxBytes=5000,
-                                                                backupCount=3))
+                                                                maxBytes=5 * 10**6,
+                                                                backupCount=1))
 
 letters = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Digamma', 'Zeta', 'Eta',
            'Theta', 'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi',
@@ -35,20 +35,14 @@ def generate_name():
 
 
 @app.route('/')
-def hello_world():
+def index():
     name = generate_name()
     return render_template('index.html', title='Home', name=name)
 
 
-@app.route('/like')
-def like():
-    feedback_logger.info(f'{time.time()}\tmodel_b\tlike')
-    return redirect("/", code=302)
-
-
-@app.route('/retry')
-def retry():
-    feedback_logger.info(f'{time.time()}\tmodel_b\tdislike')
+@app.route('/feedback/<model>/<feedback>/')
+def collect_feedback(model, feedback):
+    feedback_logger.info(f'{time.time()}\t{model}\t{feedback}')
     return redirect("/", code=302)
 
 

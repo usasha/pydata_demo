@@ -1,19 +1,23 @@
+import time
 import docker
 import pandas as pd
 from typing import Dict
 
+
+RECONFIG_INTERVAL = 15 # seconds
 MIN_WEIGHT = 1
 WEIGHT_SCALE = 30
-service_weights: Dict = {}
 
 
 class MultiarmedBandit:
-    def __init__(self, feedback_path: str) -> None:
+    def __init__(self, feedback_path: str, metrics_period: int = None) -> None:
         """
         :param feedback_path: path to tsv file with at least time, model, like/dislike columns
+        :param metrics_period: seconds from now to consider feedback
         """
         self.feedback_path = feedback_path
         self.docker = docker.from_env()
+        self.metrics_period = metrics_period
 
     def get_metrics(self) -> pd.Series:
         """
@@ -26,6 +30,9 @@ class MultiarmedBandit:
                            2: 'feedback',
                            },
                   inplace=True)
+
+        if self.metrics_period:
+            df = df[time.time() - df['time'] < self.metrics_period]
 
         df['p'] = (df['feedback']
                    .str.replace('dislike', '0')
@@ -58,13 +65,12 @@ class MultiarmedBandit:
         :return: dict with service as a key and weight as value
         """
         services = services.merge(pd.DataFrame(metrics), on='model')
-        services.loc[services['p'].isnull(), 'p'] = 1e-10
 
         services['weight'] = (services['p']
                               / services['p'].sum()
                               * WEIGHT_SCALE
                               / services['replicas']
-                              )
+                              ).fillna(0)
 
         services['weight'] = services['weight'].astype(int)
         services.loc[services['weight'] == 0, 'weight'] = MIN_WEIGHT
@@ -101,3 +107,11 @@ class MultiarmedBandit:
 
         for service in weights:
             self.update_service_weight(service, weights[service])
+
+
+if __name__ == '__main__':
+    b = MultiarmedBandit('../data/likes.tsv', RECONFIG_INTERVAL * 3)
+
+    while True:
+        time.sleep(RECONFIG_INTERVAL)
+        b.reconfigure_load_balancer()
