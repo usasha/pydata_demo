@@ -45,6 +45,19 @@ services:
     networks:
       - traefik_net
 
+  bandits:
+    image: bandits
+    depends_on:
+      - model_a
+      - model_b
+    deploy:
+      replicas: 1
+    volumes:
+      - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - traefik_net
+
 networks:
   traefik_net:
     driver: overlay
