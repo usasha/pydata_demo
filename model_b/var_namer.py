@@ -1,16 +1,11 @@
-import logging
 import logging.handlers
-import time
 import random
+import time
+
 from flask import Flask, render_template, redirect
+
 app = Flask(__name__)
 
-
-feedback_logger = logging.getLogger('stats for bandits')
-feedback_logger.setLevel('INFO')
-feedback_logger.addHandler(logging.handlers.RotatingFileHandler('../data/likes.tsv',
-                                                                maxBytes=5 * 10**6,
-                                                                backupCount=1))
 
 letters = ['Alpha', 'Beta', 'Gamma', 'Delta', 'Epsilon', 'Digamma', 'Zeta', 'Eta',
            'Theta', 'Iota', 'Kappa', 'Lambda', 'Mu', 'Nu', 'Xi', 'Omicron', 'Pi',
@@ -26,6 +21,13 @@ planets = ['Ceres', 'Pallas', 'Juno', 'Vesta', 'Astraea', 'Hebe', 'Iris', 'Flora
            'Ausonia', 'Angelina', 'Cybele', 'Maja', 'Asia', 'Leto', 'Hesperia', 'Panopaea', 'Niobe', 'Feronia',
            'Klytia', 'Galatea', 'Eurydike', 'Freia', 'Frigga', 'Diana', 'Eurynome', 'Sappho', 'Terpsichore',
            'Alkmene', 'Beatrix', 'Klio']
+
+
+feedback_logger = logging.getLogger('stats for bandits')
+feedback_logger.setLevel('INFO')
+feedback_logger.addHandler(logging.handlers.RotatingFileHandler('../data/likes.tsv',
+                                                                maxBytes=5 * 10**6,
+                                                                backupCount=1))
 
 
 def generate_name():
@@ -47,4 +49,4 @@ def collect_feedback(model, feedback):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)

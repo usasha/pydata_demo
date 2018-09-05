@@ -1,8 +1,8 @@
 import time
-import docker
-import pandas as pd
 from typing import Dict
 
+import docker
+import pandas as pd
 
 RECONFIG_INTERVAL = 15 # seconds
 MIN_WEIGHT = 1

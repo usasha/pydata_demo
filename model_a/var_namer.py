@@ -1,6 +1,6 @@
 import logging.handlers
-import time
 import random
+import time
 
 from flask import Flask, render_template, redirect
 
@@ -56,4 +56,4 @@ def collect_feedback(model, feedback):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000)
