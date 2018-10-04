@@ -42,7 +42,12 @@ class MultiarmedBandit:
         score = df.groupby('model')['p']
         return score.sum() / score.count()
 
-    def get_active_services(self):
+    def get_active_services(self) -> pd.DataFrame:
+        """
+        find all active services (blocks), all models (docker container image) and replication factor
+
+        :return: dataframe with 'service', 'model' and 'replicas' columns
+        """
         services = []
         for s in self.docker.services.list():
             service = s.name
@@ -55,8 +60,8 @@ class MultiarmedBandit:
     def get_services_weights(metrics: Dict, services: pd.DataFrame) -> Dict:
         """
         calculate weights for load balancer for each service,
-        weights are proportional to pricision score but not less than MIN_WEIGHT,
-        sum of weights for all sevices approximately equal to WEIGHT_SCALE
+        weights are proportional to precision score but not less than MIN_WEIGHT,
+        sum of weights for all services approximately equal to WEIGHT_SCALE
 
         if service use replication, weight will be divided by replicas number
 

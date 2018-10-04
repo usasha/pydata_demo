@@ -25,9 +25,11 @@ planets = ['Ceres', 'Pallas', 'Juno', 'Vesta', 'Astraea', 'Hebe', 'Iris', 'Flora
 
 feedback_logger = logging.getLogger('stats for bandits')
 feedback_logger.setLevel('INFO')
-feedback_logger.addHandler(logging.handlers.RotatingFileHandler('../data/likes.tsv',
-                                                                maxBytes=5 * 10**6,
-                                                                backupCount=1))
+feedback_logger.addHandler(logging.
+                           handlers.
+                           RotatingFileHandler('../data/likes.tsv',
+                                               maxBytes=5 * 10**6,
+                                               backupCount=1))
 
 
 def generate_name():
