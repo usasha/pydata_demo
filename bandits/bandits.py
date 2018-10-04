@@ -57,7 +57,7 @@ class MultiarmedBandit:
         return pd.DataFrame(services)
 
     @staticmethod
-    def get_services_weights(metrics: Dict, services: pd.DataFrame) -> Dict:
+    def get_services_weights(metrics: pd.Series, services: pd.DataFrame) -> Dict:
         """
         calculate weights for load balancer for each service,
         weights are proportional to precision score but not less than MIN_WEIGHT,
