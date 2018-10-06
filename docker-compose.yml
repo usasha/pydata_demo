@@ -24,11 +24,17 @@ services:
     image: model_a
     deploy:
       labels:
-        - "traefik.backend=var_namer"
+        - "traefik.backend=release_namer"
         - "traefik.backend.healthcheck.path=/healthcheck/"
         - "traefik.frontend.rule=PathPrefix:/"
         - "traefik.port=5000"
       replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 20s
+        order: start-first
+      restart_policy:
+        condition: on-failure
     volumes:
       - ./data:/app/data
     networks:
@@ -38,9 +44,15 @@ services:
     image: model_b
     deploy:
       labels:
-        - "traefik.backend=var_namer"
+        - "traefik.backend=release_namer"
         - "traefik.port=5000"
       replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 20s
+        order: start-first
+      restart_policy:
+        condition: on-failure
     volumes:
       - ./data:/app/data
     networks:
