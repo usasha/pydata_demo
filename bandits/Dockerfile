@@ -1,4 +1,4 @@
-FROM python:3.6.6-jessie
+FROM python:3.7.0-slim-stretch
 
 RUN mkdir -p /app/src \
     && chown -R nobody:nogroup /app

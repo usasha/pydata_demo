@@ -2,7 +2,7 @@ version: '3.4'
 
 services:
   reverse-proxy:
-    image: traefik:1.6.4
+    image: traefik:v1.7.2
     command:
       --api
       --docker

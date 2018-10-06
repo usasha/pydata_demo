@@ -18,8 +18,9 @@ docker build -t model_a model_a
 docker build -t model_b model_b
 docker build -t bandits bandits
 ```
+- activate swarm: `docker swarm init`
 - run demo: `docker stack deploy -c docker-compose.yml demo`
 - visit demo [page](http://localhost/) and give feedback for generated names
-- after some time you will notice that your favorite algorithm is used more frequently 
+- in half minute you will notice that your favorite algorithm is used more frequently 
 - check model weights and server performance on traefik [dashboard](http://localhost:8080/dashboard/)
 - stop demo: `docker stack rm demo`
