@@ -25,6 +25,7 @@ services:
     deploy:
       labels:
         - "traefik.backend=var_namer"
+        - "traefik.backend.healthcheck.path=/healthcheck/"
         - "traefik.frontend.rule=PathPrefix:/"
         - "traefik.port=5000"
       replicas: 2

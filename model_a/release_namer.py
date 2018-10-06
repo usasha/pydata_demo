@@ -33,7 +33,7 @@ adjectives = ['Adamant', 'Adroit', 'Amatory', 'Animistic', 'Antic', 'Arcadian', 
 feedback_logger = logging.getLogger('stats for bandits')
 feedback_logger.setLevel('INFO')
 feedback_logger.addHandler(logging.handlers.RotatingFileHandler('../data/likes.tsv',
-                                                                maxBytes=5 * 10 ** 5,
+                                                                maxBytes=5 * 10**5,
                                                                 backupCount=1))
 
 
@@ -53,6 +53,11 @@ def index():
 def collect_feedback(model, feedback):
     feedback_logger.info(f'{time.time()}\t{model}\t{feedback}')
     return redirect("/", code=302)
+
+
+@app.route('/healthcheck/')
+def healthcheck():
+    return "I'm okay"
 
 
 if __name__ == '__main__':
