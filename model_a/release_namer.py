@@ -33,7 +33,7 @@ adjectives = ['Adamant', 'Adroit', 'Amatory', 'Animistic', 'Antic', 'Arcadian', 
 feedback_logger = logging.getLogger('stats for bandits')
 feedback_logger.setLevel('INFO')
 feedback_logger.addHandler(logging.handlers.RotatingFileHandler('../data/likes.tsv',
-                                                                maxBytes=5 * 10 ** 6,
+                                                                maxBytes=5 * 10 ** 5,
                                                                 backupCount=1))
 
 
