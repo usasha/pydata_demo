@@ -1,1 +1,3 @@
 flask==1.0.2
+docker==3.5.0
+redis==3.2.0

@@ -5,10 +5,10 @@ import docker
 import pandas as pd
 import redis
 
-RECONFIG_INTERVAL = 15 # seconds
+RECONFIG_INTERVAL = 15  # seconds
 MIN_WEIGHT = 1
 WEIGHT_SCALE = 30
-TIME_WINDOW = 24 * 60 * 1000  # hours -> milliseconds
+TIME_WINDOW = 24 * 60 * 60 * 1000  # hours -> milliseconds
 
 
 class MultiarmedBandit:
@@ -20,7 +20,7 @@ class MultiarmedBandit:
         self.feedback_path = feedback_path
         self.docker = docker.from_env()
         self.metrics_period = metrics_period
-        self.r = redis.StrictRedis()
+        self.r = redis.StrictRedis('redis')
 
     def calculate_weights(self, services: pd.DataFrame) -> Dict:
         """
@@ -41,15 +41,15 @@ class MultiarmedBandit:
 
         score = pd.DataFrame([x for _, x in score])
         score.columns = [c.decode() for c in score.columns]
-        score['like'] = score['like'].astype(int)
+        score['value'] = score['value'].astype(int)
         score['model'] = score['model'].apply(lambda x: x.decode())
         score = score.groupby('model', as_index=False).mean()
         score = services.merge(score, on='model')
-        score['weight'] = (score['like']
-                              / score['like'].sum()
-                              * WEIGHT_SCALE
-                              / score['replicas']
-                              ).fillna(0)
+        score['weight'] = (score['value']
+                           / score['value'].sum()
+                           * WEIGHT_SCALE
+                           / score['replicas']
+                           ).fillna(0)
 
         score['weight'] = score['weight'].astype(int)
         score.loc[score['weight'] == 0, 'weight'] = MIN_WEIGHT
@@ -101,6 +101,15 @@ class MultiarmedBandit:
 
         for service in weights:
             self.update_service_weight(service, weights[service])
+
+
+class ClueLogger:
+    def __init__(self, block, model):
+        self.block = block
+        self.r = redis.StrictRedis('redis')
+
+    def out(self, model, value):
+        self.r.xadd(self.block, {'model': model, 'value': value})
 
 
 if __name__ == '__main__':
