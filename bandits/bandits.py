@@ -3,10 +3,12 @@ from typing import Dict
 
 import docker
 import pandas as pd
+import redis
 
 RECONFIG_INTERVAL = 15 # seconds
 MIN_WEIGHT = 1
 WEIGHT_SCALE = 30
+TIME_WINDOW = 24 * 60 * 1000  # hours -> milliseconds
 
 
 class MultiarmedBandit:
@@ -18,29 +20,41 @@ class MultiarmedBandit:
         self.feedback_path = feedback_path
         self.docker = docker.from_env()
         self.metrics_period = metrics_period
+        self.r = redis.StrictRedis()
 
-    def get_metrics(self) -> pd.Series:
+    def calculate_weights(self, services: pd.DataFrame) -> Dict:
         """
-        calculate precision for each model
-        :return: series with block, with model as index and score as value
+        calculate weights for load balancer for each service,
+        weights are proportional to precision score but not less than MIN_WEIGHT,
+        sum of weights for all services approximately equal to WEIGHT_SCALE
+
+        if service use replication, weight will be divided by replicas number
+
+        :param services: dataframe with active services (block, model, n_replicas, service)
+        :return: dict with service as a key and weight as value
         """
-        df = pd.read_csv(self.feedback_path, sep='\t', header=None)
-        df.rename(columns={0: 'time',
-                           1: 'model',
-                           2: 'feedback',
-                           },
-                  inplace=True)
+        start_time = int(time.time() * 1000) - TIME_WINDOW
 
-        if self.metrics_period:
-            df = df[time.time() - df['time'] < self.metrics_period]
+        for block in services['block'].unique():
+            if block:
+                score = self.r.xrange(block, min=start_time, max='+')
 
-        df['p'] = (df['feedback']
-                   .str.replace('dislike', '0')
-                   .str.replace('like', '1')
-                   .astype(int))
+        score = pd.DataFrame([x for _, x in score])
+        score.columns = [c.decode() for c in score.columns]
+        score['like'] = score['like'].astype(int)
+        score['model'] = score['model'].apply(lambda x: x.decode())
+        score = score.groupby('model', as_index=False).mean()
+        score = services.merge(score, on='model')
+        score['weight'] = (score['like']
+                              / score['like'].sum()
+                              * WEIGHT_SCALE
+                              / score['replicas']
+                              ).fillna(0)
 
-        score = df.groupby('model')['p']
-        return score.sum() / score.count()
+        score['weight'] = score['weight'].astype(int)
+        score.loc[score['weight'] == 0, 'weight'] = MIN_WEIGHT
+
+        return score.set_index('service').to_dict()['weight']
 
     def get_active_services(self) -> pd.DataFrame:
         """
@@ -52,35 +66,11 @@ class MultiarmedBandit:
         for s in self.docker.services.list():
             service = s.name
             model = s.attrs['Spec']['Labels']['com.docker.stack.image'].split(':')[0]
+            block = s.attrs['Spec']['Labels'].get('traefik.backend')
             replicas = s.attrs['Spec']['Mode']['Replicated']['Replicas']
-            services.append({'service': service, 'model': model, 'replicas': replicas})
+            services.append({'service': service, 'block': block,
+                             'model': model, 'replicas': replicas})
         return pd.DataFrame(services)
-
-    @staticmethod
-    def get_services_weights(metrics: pd.Series, services: pd.DataFrame) -> Dict:
-        """
-        calculate weights for load balancer for each service,
-        weights are proportional to precision score but not less than MIN_WEIGHT,
-        sum of weights for all services approximately equal to WEIGHT_SCALE
-
-        if service use replication, weight will be divided by replicas number
-
-        :param metrics: dict with model as key and p as value
-        :param services: dataframe with active services (model, n_replicas, service)
-        :return: dict with service as a key and weight as value
-        """
-        services = services.merge(pd.DataFrame(metrics), on='model')
-
-        services['weight'] = (services['p']
-                              / services['p'].sum()
-                              * WEIGHT_SCALE
-                              / services['replicas']
-                              ).fillna(0)
-
-        services['weight'] = services['weight'].astype(int)
-        services.loc[services['weight'] == 0, 'weight'] = MIN_WEIGHT
-
-        return services[['service', 'weight']].set_index('service').to_dict()['weight']
 
     def update_service_weight(self, name: str, weight: int) -> bool:
         """
@@ -106,9 +96,8 @@ class MultiarmedBandit:
         """
         reconfigure traefik.weight for services proportional to model precision
         """
-        metrics = self.get_metrics()
         services = self.get_active_services()
-        weights = self.get_services_weights(metrics, services)
+        weights = self.calculate_weights(services)
 
         for service in weights:
             self.update_service_weight(service, weights[service])
