@@ -1,8 +1,8 @@
-import logging.handlers
 import random
-import time
 
 from flask import Flask, render_template, redirect
+
+from utils import ClueLogger
 
 app = Flask(__name__)
 
@@ -23,13 +23,6 @@ planets = ['Ceres', 'Pallas', 'Juno', 'Vesta', 'Astraea', 'Hebe', 'Iris', 'Flora
            'Alkmene', 'Beatrix', 'Klio']
 
 
-feedback_logger = logging.getLogger('stats for bandits')
-feedback_logger.setLevel('INFO')
-feedback_logger.addHandler(logging.handlers.RotatingFileHandler('../data/likes.tsv',
-                                                                maxBytes=5 * 10**5,
-                                                                backupCount=1))
-
-
 def generate_name():
     letter = random.choice(letters)
     planet = random.choice(planets)
@@ -44,7 +37,7 @@ def index():
 
 @app.route('/feedback/<model>/<feedback>/')
 def collect_feedback(model, feedback):
-    feedback_logger.info(f'{time.time()}\t{model}\t{feedback}')
+    logger.out(model, feedback)
     return redirect("/", code=302)
 
 
@@ -54,4 +47,5 @@ def healthcheck():
 
 
 if __name__ == '__main__':
+    logger = ClueLogger(block='var_namer', model='model_b')
     app.run(host='0.0.0.0', port=5000)

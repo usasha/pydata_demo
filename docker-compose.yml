@@ -22,6 +22,8 @@ services:
 
   model_a:
     image: model_a
+    depends_on:
+      - redis
     deploy:
       labels:
         - "traefik.backend=release_namer"
@@ -35,13 +37,13 @@ services:
         order: start-first
       restart_policy:
         condition: on-failure
-    volumes:
-      - ./data:/app/data
     networks:
       - traefik_net
 
   model_b:
     image: model_b
+    depends_on:
+      - redis
     deploy:
       labels:
         - "traefik.backend=release_namer"
@@ -53,8 +55,6 @@ services:
         order: start-first
       restart_policy:
         condition: on-failure
-    volumes:
-      - ./data:/app/data
     networks:
       - traefik_net
 
@@ -63,11 +63,26 @@ services:
     depends_on:
       - model_a
       - model_b
+      - redis
     deploy:
       replicas: 1
     volumes:
-      - ./data:/app/data
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - traefik_net
+
+  redis:
+    image: redis:5.0-alpine
+    ports:
+      - "6379:6379"
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 1
+        delay: 20s
+        order: start-first
+      restart_policy:
+        condition: on-failure
     networks:
       - traefik_net
 
